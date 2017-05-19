@@ -1,0 +1,293 @@
+---
+title: "Assignment3_GGPlot"
+author: "Anu Balakrishnan"
+date: "May 18, 2017"
+output:
+  pdf_document: default
+  html_document: default
+---
+
+```{r install packs, eval=TRUE, echo=TRUE, warning=FALSE}
+#make sure you have libraries
+library(dplyr)
+library(tidyr)
+library(ggplot2)
+library(gridExtra)
+library(lubridate)
+library(tidyverse)
+
+sierraclim <- read.delim("~/Anurooba/UCSB/BREN/3 Spring 2017/262/Assignment/Assignment 3/sierraclim.txt", sep = " ",na="")
+resthindeep <- read.delim("~/Anurooba/UCSB/BREN/3 Spring 2017/262/Assignment/Assignment 3/resthin.deep.txt", sep = " ",na="")
+resthinshallow <- read.delim("~/Anurooba/UCSB/BREN/3 Spring 2017/262/Assignment/Assignment 3/resthin.shallow.txt", sep = " ",na="")
+```
+
+```{r climate, eval=TRUE, echo=TRUE, warning=FALSE}
+#Using the climate data set, compare the monthly averahe temperature collected over the period of 50 years with the rainfall received
+
+#Convert the climate data frame as tibble
+clim <- as_tibble(sierraclim)
+clim
+
+#Changing factor vector to data
+clim$date <- parse_date(clim$date, "%m/%d/%y")
+
+#Average temperature of the day
+clim$AvgTemp<-(clim$tmax+clim$tmin)/2
+
+ggplot(data = clim, aes(AvgTemp,rain)) +
+     geom_line(size=0.75, color="lightblue") +
+     ggtitle("Average Monthly Temperature and Rainfall \nin Sierra [1941-2013]") +
+     xlab("Monthly Average Temperature in degree celcius") +
+     ylab("Total Rainfall in mm") +
+     annotate("text", label="1965 : Highest rainfall year \nAverage Temperature 6.63 Degree Celcius", x=15.63, y= 404.06, size=3.2, fontface="bold", colour= "lightblue") +
+     annotate("segment", x = 6.73, xend = 9.2, y =405.06, yend = 408.08, colour="Orange", size=.5) +
+     theme(text=element_text(family="Times", colour = "lightblue", size = 14)) +
+     theme_bw() +
+     theme(plot.title = element_text(size=14)) +
+     theme(
+          panel.background = element_rect(fill = "navy"),
+          panel.border      = element_rect(fill = NA, colour = "Orange"),
+          panel.grid.major.x = element_blank(),
+          panel.grid.major.y = element_blank(),
+          panel.grid.minor = element_blank(),
+          plot.title=element_text(size = 20, color = "navy"),
+          axis.line.x = element_line(size = 0.5, colour = "navy"), 
+          axis.line.y = element_line(size = 0.5, colour = "navy")
+          )
+
+```
+
+```{r install monthly, eval=TRUE, echo=TRUE, warning=FALSE}
+# Using climate data set, compare the maximum and minimum temperature averaged every month for the 50 year period 
+
+#Using facet wrap
+
+#splitting the data into monthly representation.
+clim$month <- as.character(clim$month)
+clim$month[clim$month == "1"] <- "01-January"
+clim$month[clim$month == "2"] <- "02-February"
+clim$month[clim$month == "3"] <- "03-March"
+clim$month[clim$month == "4"] <- "04-April"
+clim$month[clim$month == "5"] <- "05-May"
+clim$month[clim$month == "6"] <- "06-June"
+clim$month[clim$month == "7"] <- "07-July"
+clim$month[clim$month == "8"] <- "08-August"
+clim$month[clim$month == "9"] <- "09-September"
+clim$month[clim$month == "10"] <- "10-October"
+clim$month[clim$month == "11"] <- "11-November"
+clim$month[clim$month == "12"] <- "12-December"
+
+
+temperatureData =   ggplot(clim) + 
+                    geom_line(aes(x=year, y=tmin), stat="summary", fun.y="mean", col="rosybrown2") + 
+                    geom_line(aes(x=year, y=tmax), stat="summary", fun.y="mean", col="red4") +
+                    facet_wrap(~as.factor(month)) +
+                    theme(
+                         strip.text.x = element_text(size=8, angle=50),
+                         strip.text.y = element_text(size=12, face="bold"),
+                         strip.background = element_rect(colour="red", fill="#CCCCFF")) +
+                    theme_bw() +
+                    theme(
+                         panel.background = element_rect(fill = "navy"),
+                         panel.border      = element_rect(fill = NA, colour = "Orange"),
+                         panel.grid.major.x = element_blank(),
+                         panel.grid.major.y = element_blank(),
+                         panel.grid.minor = element_blank(),
+                         plot.title=element_text(size = 20, color = "navy"),
+                         axis.line.x = element_line(size = 0.5, colour = "navy"), 
+                         axis.line.y = element_line(size = 0.5, colour = "navy")
+                         ) +
+                         labs(y= expression(paste("Maximum Temperature ",C**degree)), x="Year") +
+                         theme(plot.title = element_text(size=14)) +
+                         ggtitle("Monthly Maximum and Minimim Temperature in Sierras")
+temperatureData
+```
+
+
+```{r install deep, eval=TRUE, echo=TRUE, warning=FALSE}
+
+# Using thindeep data set, compare:
+#         1) the biomass growth for the deep root trees for Shared and isolated resources
+#         2) the thinning intensity for deep root trees for shared and isoldated resources
+
+
+resthindeep <- as_tibble(resthindeep)
+
+#Shared resources
+resthindeepShared <- filter(resthindeep, resthindeep$shared == "TRUE") 
+resthindeepShared
+#Isolated resources
+resthindeepIsolated <- filter(resthindeep, resthindeep$shared == "FALSE") 
+resthindeepIsolated
+
+
+p1 = ggplot(resthindeepShared) + 
+     geom_bar(aes(x=wy,y=plantc), stat="summary", fun.y="mean", fill = "skyblue2") + 
+     geom_line(aes(x=wy, y=trans), stat="summary", fun.y="mean", col = "blue") + 
+     geom_line(aes(x=wy, y=evap), stat="summary", fun.y="mean", col = "red") + 
+     labs(x="Years since thinning", y="Biomass")+
+     ggtitle("Biomass growth for trees\ndeep roots, shared resources") +
+     theme_bw() + 
+     theme(
+          panel.grid.major.x = element_blank(),
+          panel.grid.major.y = element_blank(),
+          panel.grid.minor = element_blank()
+          ) + 
+     theme(plot.title = element_text(size=10)) +
+     annotate("text", x=5, y=2.0, label="Transpiration", colour="blue", size=3, hjust=0.5) +
+     annotate("text", x=8, y=0.6, label="Evaporation", colour="red", size=3, hjust=0)
+
+
+
+p2 = ggplot(resthindeepShared, aes(x=as.factor(wy), y=plantc, fill=as.factor(thin))) +
+     geom_boxplot() +
+     labs(x="Years since thinning", y="Biomass") +
+     ggtitle("Thinning intensity for trees\ndeep roots, shared resources") +
+     theme_bw() + 
+     theme(plot.title = element_text(size=10)) +
+     theme(
+          axis.text= element_text(face="bold", size=10), 
+          axis.title = element_text(size=10)
+          )
+
+
+p3 = ggplot(resthindeepIsolated) + 
+     geom_bar(aes(x=wy,y=plantc), stat="summary", fun.y="mean", fill = "skyblue2") + 
+     geom_line(aes(x=wy, y=trans), stat="summary", fun.y="mean", col = "blue") + 
+     geom_line(aes(x=wy, y=evap), stat="summary", fun.y="mean", col = "red") + 
+     labs(x="Years since thinning", y="Biomass")+
+     ggtitle("Biomass growth for trees\n deep roots, isolated resources") +
+     theme_bw() + 
+     theme(plot.title = element_text(size=10)) +
+     theme(
+          panel.grid.major.x = element_blank(),
+          panel.grid.major.y = element_blank(),
+          panel.grid.minor = element_blank()
+     ) + 
+     annotate("text", x=5, y=2.0, label="Transpiration", colour="blue", size=3, hjust=0.5) +
+     annotate("text", x=8, y=0.6, label="Evaporation", colour="red", size=3, hjust=0)
+
+
+p4 = ggplot(resthindeepIsolated, aes(x=as.factor(wy), y=plantc, fill=as.factor(thin))) +
+     geom_boxplot() +
+     labs(x="Years since thinning", y="Biomass") +
+     ggtitle("Thinning intensity for trees\ndeep roots, isolated resources") +
+     theme_bw() + 
+     theme(plot.title = element_text(size=10)) +
+     theme(
+          axis.text= element_text(face="bold", size=10), 
+          axis.title = element_text(size=10)
+     )
+
+grid.arrange(p1,p2,p3,p4)
+
+```
+
+```{r install shallow, eval=TRUE, echo=TRUE, warning=FALSE}
+# Using thindeep and thin shallow data set, for the wettest month , June, over the years,
+# compare thinning effects on biomass due to :
+#    1) Evaporation, Transpiration for deep roots trees
+#    2) Evaporation, Transpiration for shallow roots trees
+
+resthindeep <- as.tibble(resthindeep)
+resthinshallow <- as.tibble(resthinshallow)
+
+resthindeep_wettestmonth <- filter(resthindeep, resthindeep$month == 6)
+resthindeep_wettestmonth
+resthinshallow_wettestmonth <- filter(resthinshallow, resthinshallow$month == 6)
+resthinshallow_wettestmonth
+
+
+w1= ggplot(resthindeep_wettestmonth, aes(x=day, y=evap)) +
+     geom_line(aes(x=day, y=evap), stat="summary", fun.y="mean", col="blue") +
+     scale_x_continuous(limits = c(1,30), expand = c(0,0),breaks=c(3,6,9,12,15,18,21,24,27,30))+
+     theme_bw() + 
+     theme(plot.title = element_text(size=10)) +
+     theme(
+          panel.background = element_rect(fill = "mistyrose2"),
+          panel.grid.major.x = element_blank(),
+          panel.grid.major.y = element_blank(),
+          panel.grid.minor = element_blank()
+     ) +
+     labs(x="June Days (1950-1980)", y="Evaporation") +
+     ggtitle("Deep Roots:\nDaily Mean Evaporation\nfor June(wettest month)")
+
+w2= ggplot(resthindeep_wettestmonth)+
+     geom_line(aes(x=day, y=trans), stat="summary", fun.y="mean", col="blue") +
+     labs(x="June Days (1950-1980)", y="Transpiration") +
+     scale_x_continuous(limits = c(1,30), expand = c(0,0),breaks=c(3,6,9,12,15,18,21,24,27,30))+
+     ggtitle("Deep Roots:\nDaily Mean Transpiration\nfor June(wettest month)")+
+     theme_bw() + 
+     theme(plot.title = element_text(size=10)) +
+     theme(
+          panel.background = element_rect(fill = "mistyrose2"),
+          panel.grid.major.x = element_blank(),
+          panel.grid.major.y = element_blank(),
+          panel.grid.minor = element_blank()
+     ) 
+
+
+w3= ggplot(resthindeep_wettestmonth)+
+     geom_line(aes(x=day, y=plantc), stat="summary", fun.y="mean", col="blue") +
+     labs(x="June Days (1950-1980)", y="Biomass") +
+     scale_x_continuous(limits = c(1,30), expand = c(0,0),breaks=c(3,6,9,12,15,18,21,24,27,30))+
+     ggtitle("Deep Roots:\nMean Biomass\nfor June(wettest month)")+
+     theme_bw() + 
+     theme(plot.title = element_text(size=10)) +
+     theme(
+          panel.background = element_rect(fill = "mistyrose2"),
+          panel.grid.major.x = element_blank(),
+          panel.grid.major.y = element_blank(),
+          panel.grid.minor = element_blank()
+     ) 
+     
+w4= ggplot(resthinshallow_wettestmonth)+
+     geom_line(aes(x=day, y=evap), stat="summary", fun.y="mean", col="blue") +
+     labs(x="June Days (1950-1980)", y="Evaporation") +
+     scale_x_continuous(limits = c(1,30), expand = c(0,0),breaks=c(3,6,9,12,15,18,21,24,27,30))+
+     theme_bw() + 
+     ggtitle("Shallow Roots:\nDaily Mean Evaporation\nfor June(wettest month)") +
+     theme(plot.title = element_text(size=10)) +
+     theme(
+          panel.background = element_rect(fill = "thistle2"),
+          panel.grid.major.x = element_blank(),
+          panel.grid.major.y = element_blank(),
+          panel.grid.minor = element_blank()
+     )
+
+w5= ggplot(resthinshallow_wettestmonth)+
+     geom_line(aes(x=day, y=trans), stat="summary", fun.y="mean", col="blue") +
+     labs(x="June Days (1950-1980)", y="Transpiration") +
+     scale_x_continuous(limits = c(1,30), expand = c(0,0),breaks=c(3,6,9,12,15,18,21,24,27,30))+
+     ggtitle("Shallow Roots:\nDaily Mean Transpiration\nfor June(wettest month)")+
+     theme_bw() + 
+     theme(plot.title = element_text(size=10)) +
+     theme(
+          panel.background = element_rect(fill = "thistle2"),
+          panel.grid.major.x = element_blank(),
+          panel.grid.major.y = element_blank(),
+          panel.grid.minor = element_blank()
+     ) 
+
+
+w6= ggplot(resthinshallow_wettestmonth)+
+     geom_line(aes(x=day, y=plantc), stat="summary", fun.y="mean", col="blue") +
+     labs(x="June Days (1950-1980)", y="Biomass") +
+     scale_x_continuous(limits = c(1,30), expand = c(0,0),breaks=c(3,6,9,12,15,18,21,24,27,30))+
+     ggtitle("Shallow Roots:\nMean Biomass\nfor June(wettest month)")+
+     theme_bw() + 
+     theme(plot.title = element_text(size=10)) +
+     theme(
+          panel.background = element_rect(fill = "thistle2"),
+          panel.grid.major.x = element_blank(),
+          panel.grid.major.y = element_blank(),
+          panel.grid.minor = element_blank()
+     ) 
+
+
+grid.arrange(w1,w2,w3,w4,w5,w6, ncol = 3)
+```
+
+
+
+
